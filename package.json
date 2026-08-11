@@ -1,0 +1,10 @@
+{
+  "name": "dailygerman",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "npm run check:content && npm test",
+    "check:content": "node tools/content-lint.mjs",
+    "test": "node --test tests/*.test.mjs"
+  }
+}

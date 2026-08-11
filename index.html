@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DailyGerman · 日常德语，一站就够了</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%23C64A28'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Hanken+Grotesk:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <a class="logo" href="#/">
+      <div class="logo-mark"><span class="lm-c"></span></div>
+      <div class="logo-text">DailyGerman<span>日常德语，一站就够了</span></div>
+    </a>
+    <a class="mobile-settings-link" href="#/settings" aria-label="打开设置">⚙ 设置</a>
+    <nav id="nav">
+      <a href="#/" data-route="home"><i class="nb nb-circle"></i>首页 <em>Start</em></a>
+      <a href="#/units" data-route="units"><i class="nb nb-square"></i>课程 <em>Lektionen</em></a>
+      <a href="#/cards" data-route="cards"><i class="nb nb-tri"></i>词汇卡片 <em>Karten</em><b id="nav-due" class="due-badge" hidden></b></a>
+      <a href="#/chat" data-route="chat"><i class="nb nb-half"></i>AI 陪练 <em>Tandem</em></a>
+      <a href="#/grammar" data-route="grammar"><i class="nb nb-lines"></i>语法手册 <em>Grammatik</em></a>
+      <a href="#/phrases" data-route="phrases"><i class="nb nb-dot"></i>短语 <em>Phrasen</em></a>
+      <a href="#/listening" data-route="listening"><i class="nb nb-wave"></i>听力 <em>Hören</em></a>
+      <a href="#/reading" data-route="reading"><i class="nb nb-page"></i>阅读 <em>Lesen</em></a>
+      <a href="#/search" data-route="search"><i class="nb nb-ring"></i>检索 <em>Suchen</em></a>
+    </nav>
+    <div class="side-foot">
+      <a href="#/settings" data-route="settings" class="settings-link">⚙ 设置</a>
+      <div class="gender-legend">
+        <span><b class="g-der"></b>der 阳性</span>
+        <span><b class="g-die"></b>die 阴性</span>
+        <span><b class="g-das"></b>das 中性</span>
+      </div>
+    </div>
+  </aside>
+  <main id="main"></main>
+</div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
