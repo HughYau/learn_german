@@ -11,18 +11,28 @@ function fieldBlock(labelText, node) {
   return wrap;
 }
 
+function safeEndpoint(value) {
+  try {
+    const url = new URL(String(value || '').trim());
+    return url.protocol === 'https:'
+      || (url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname));
+  } catch { return false; }
+}
+
 export function render(container) {
   container.append(el('div', { class: 'kicker' }, 'EINSTELLUNGEN'));
   container.append(el('h1', { class: 'page' }, '设置 ', el('span', { class: 'de' }, 'Einstellungen')));
   container.append(el('p', { class: 'page-sub' }, '接口、发音、数据——都在这里管理。'));
 
   const s = getSettings();
-  const isStaticDeployment = !['localhost', '127.0.0.1'].includes(location.hostname);
+  const directMode = !['localhost', '127.0.0.1'].includes(location.hostname);
 
   /* ---- 1. AI 陪练接口 ---- */
   const g1 = el('div', { class: 'set-group card' });
   g1.append(el('h3', {}, 'AI 陪练接口'));
-  g1.append(el('div', { class: 'd' }, '本地运行时，AI 请求经由 server.py 转发到你选择的服务商，Key 只保存在当前浏览器。GitHub Pages 只能托管静态学习功能，公开部署后若要启用 AI，需要另配安全的代理后端；不要把 Key 写进仓库。'));
+  g1.append(el('div', { class: 'd' }, directMode
+    ? '公开版会从当前浏览器直接请求你填写的 API 端点。端点、模型和 Key 只保存在本机；服务商必须允许浏览器跨域访问。请只在可信设备上使用个人 Key。'
+    : '本地版通过 server.py 转发 AI 请求。端点、模型和 Key 只保存在当前浏览器，不会写入项目文件。'));
 
   const curProvider = () => PROVIDERS.find(p => p.id === s.provider) || PROVIDERS[0];
 
@@ -32,50 +42,58 @@ export function render(container) {
   });
   const providerHint = el('div', { class: 'd', style: 'margin-top:6px' }, curProvider().hint || '');
 
-  const baseUrlInput = el('input', { type: 'text', value: s.baseUrl || '' });
-  const apiKeyInput = el('input', { type: 'password', value: s.apiKey || '', placeholder: curProvider().noKey ? '此服务商无需 Key' : '' });
+  const baseUrlInput = el('input', { type: 'text', value: s.baseUrl || '', placeholder: 'https://example.com/v1', spellcheck: false });
+  const apiKeyInput = el('input', { type: 'password', value: s.apiKey || '', placeholder: curProvider().noKey ? '此服务商无需 Key' : '', autocomplete: 'off' });
+  const modelList = el('datalist', { id: 'ai-model-options' });
+  const modelInput = el('input', { type: 'text', value: s.model || '', list: 'ai-model-options', placeholder: '模型 ID，也可以手动填写', spellcheck: false });
 
   providerSelect.addEventListener('change', () => {
     const def = PROVIDERS.find(p => p.id === providerSelect.value) || PROVIDERS[0];
     if (def.id !== 'custom') baseUrlInput.value = def.base;
     providerHint.textContent = def.hint || '';
     apiKeyInput.placeholder = def.noKey ? '此服务商无需 Key' : '';
-    // 切换服务商时清除旧 Key 和模型，避免把一家的凭据误发给另一家端点。
+    // 切换服务商时清除旧凭据和模型，避免误发给另一个端点。
     apiKeyInput.value = '';
-    modelSelect.innerHTML = '';
+    modelInput.value = '';
+    modelList.innerHTML = '';
     setSettings({ provider: def.id, baseUrl: baseUrlInput.value.trim(), apiKey: '', model: '' });
   });
+  modelInput.addEventListener('change', () => setSettings({ model: modelInput.value.trim() }));
 
-  const modelSelect = el('select', { style: 'flex:1' });
-  if (s.model) modelSelect.append(el('option', { value: s.model, selected: true }, s.model));
-  // 即选即存，避免"选了模型但忘点保存"
-  modelSelect.addEventListener('change', () => setSettings({ model: modelSelect.value }));
   const refreshBtn = el('button', { class: 'btn ghost small', type: 'button' }, '刷新模型列表');
-  const modelRow = el('div', { style: 'display:flex; gap:10px; align-items:center; max-width:480px' }, modelSelect, refreshBtn);
-  const modelMsg = el('div', { class: 'd', style: 'margin-top:6px; min-height:1.2em' }, '');
+  const modelRow = el('div', { style: 'display:flex; gap:10px; align-items:center; max-width:560px' }, modelInput, modelList, refreshBtn);
+  const modelMsg = el('div', { class: 'd', style: 'margin-top:6px; min-height:1.2em' }, '模型列表无法获取时，可直接手动填写模型 ID。');
 
   refreshBtn.addEventListener('click', async () => {
     const key = apiKeyInput.value.trim();
     const base = baseUrlInput.value.trim();
     const provider = PROVIDERS.find(p => p.id === providerSelect.value) || PROVIDERS[0];
+    if (!safeEndpoint(base)) {
+      modelMsg.textContent = '请输入 HTTPS 端点；HTTP 仅允许 localhost 或 127.0.0.1。';
+      return;
+    }
     if (!key && !provider.noKey) {
       modelMsg.textContent = '请先填入 API Key，再刷新模型列表。';
       return;
     }
-    setSettings({ provider: provider.id, baseUrl: base, apiKey: key });
+    setSettings({ provider: provider.id, baseUrl: base, apiKey: key, model: modelInput.value.trim() });
     refreshBtn.disabled = true;
     refreshBtn.textContent = '获取中…';
     modelMsg.textContent = '';
     try {
       const models = await fetchModels();
-      const cur = modelSelect.value;
-      modelSelect.innerHTML = '';
-      models.forEach(id => modelSelect.append(el('option', { value: id, selected: id === cur }, id)));
-      if (models.length && !models.includes(cur)) modelSelect.value = models[0];
-      setSettings({ model: modelSelect.value }); // 刷新后立刻保存当前选中的模型
-      modelMsg.textContent = `已获取 ${models.length} 个模型，当前选择已保存。`;
+      const cur = modelInput.value.trim();
+      modelList.innerHTML = '';
+      models.forEach(id => modelList.append(el('option', { value: id })));
+      if (!cur && models.length) modelInput.value = models[0];
+      setSettings({ model: modelInput.value.trim() });
+      modelMsg.textContent = models.length
+        ? `已获取 ${models.length} 个模型，当前模型已保存。`
+        : '端点没有返回模型列表，请手动填写模型 ID。';
     } catch (e) {
-      modelMsg.textContent = '获取失败，请检查 API 端点和 Key 是否正确。';
+      modelMsg.textContent = directMode && e?.message === 'network'
+        ? '浏览器无法连接该端点。请确认地址正确，并确认服务商允许跨域请求（CORS）；仍可手动填写模型 ID 后尝试对话。'
+        : '获取失败，请检查 API 端点、Key 和跨域设置。也可以手动填写模型 ID。';
     } finally {
       refreshBtn.disabled = false;
       refreshBtn.textContent = '刷新模型列表';
@@ -85,10 +103,16 @@ export function render(container) {
   const saveBtn = el('button', { class: 'btn', type: 'button', style: 'margin-top:18px' }, '保存');
   const okNote = el('div', { class: 'ok-note', style: 'display:none' }, '已保存 ✓');
   saveBtn.addEventListener('click', () => {
+    const base = baseUrlInput.value.trim();
+    if (!safeEndpoint(base)) {
+      modelMsg.textContent = '未保存：请输入 HTTPS 端点；HTTP 仅允许本机地址。';
+      return;
+    }
     setSettings({
-      baseUrl: baseUrlInput.value.trim(),
+      provider: providerSelect.value,
+      baseUrl: base,
       apiKey: apiKeyInput.value.trim(),
-      model: modelSelect.value || (modelSelect.options[0] && modelSelect.options[0].value) || '',
+      model: modelInput.value.trim(),
     });
     okNote.style.display = '';
     setTimeout(() => { okNote.style.display = 'none'; }, 2000);
@@ -98,17 +122,10 @@ export function render(container) {
     fieldBlock('服务商', providerSelect),
     providerHint,
     fieldBlock('API 端点', baseUrlInput),
-    fieldBlock('API Key', apiKeyInput),
+    fieldBlock('API Key（仅保存在本机）', apiKeyInput),
     fieldBlock('模型', modelRow),
     modelMsg, saveBtn, okNote
   );
-
-  if (isStaticDeployment) {
-    [providerSelect, baseUrlInput, apiKeyInput, modelSelect, refreshBtn, saveBtn]
-      .forEach(node => { node.disabled = true; });
-    modelMsg.textContent = '公开静态版未配置 AI 后端，已停用凭据输入；其余学习功能不受影响。';
-  }
-
   /* ---- 2. 发音 ---- */
   const g2 = el('div', { class: 'set-group card' });
   g2.append(el('h3', {}, '发音'));

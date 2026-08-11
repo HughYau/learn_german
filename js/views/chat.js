@@ -44,14 +44,6 @@ export function render(container) {
     '（随你的课程完成进度自动升级）'
   ));
 
-  const isStaticDeployment = !['localhost', '127.0.0.1'].includes(location.hostname);
-  if (isStaticDeployment) {
-    container.append(el('div', { class: 'card', style: 'padding:26px 30px' },
-      el('h3', {}, '公开版暂未启用 AI 陪练'),
-      el('p', { style: 'margin-top:8px' }, 'GitHub Pages 不能安全保管或代理 API Key。课程、词卡、听力、阅读和本地进度均可直接使用；AI 功能需要站点维护者另配安全后端。')
-    ));
-    return;
-  }
   if (!hasKey()) {
     container.append(el('div', { class: 'card', style: 'padding:26px 30px' },
       el('p', {}, '先去设置页填入你的 API Key，才能开始 AI 陪练。'),
@@ -145,9 +137,13 @@ export function render(container) {
     } catch (e) {
       thinking.remove();
       let msg;
-      if (e.message === 'auth') msg = 'API Key 无效或已过期，请到设置页检查（SAIA 的 Key 有效期 6 个月）';
-      else if (e.message === 'network') msg = '连接失败：请确认 server.py 正在运行，稍后再试';
-      else if (e.message === 'empty-content') msg = '模型返回了空内容——这个模型可能不适合对话，请到设置页换一个模型试试';
+      if (e.message === 'auth') msg = 'API Key 无效、过期或没有调用该模型的权限，请到设置页检查。';
+      else if (e.message === 'network') msg = ['localhost', '127.0.0.1'].includes(location.hostname)
+        ? '连接失败：请确认 server.py 正在运行，稍后再试。'
+        : '浏览器无法连接 API 端点。请检查地址，并确认服务商允许跨域请求（CORS）。';
+      else if (e.message === 'no-endpoint' || e.message === 'unsafe-endpoint') msg = 'API 端点无效：请填写 HTTPS 地址；HTTP 仅允许本机地址。';
+      else if (e.message === 'no-model') msg = '请先到设置页填写模型 ID。';
+      else if (e.message === 'empty-content') msg = '模型返回了空内容——这个模型可能不适合对话，请到设置页换一个模型试试。';
       else if (e.status === 404 || e.status === 400) msg = `${e.message}（提示：可能是模型名无效，请到设置页点「刷新模型列表」重新选择）`;
       else msg = e.message || '出错了，请稍后再试';
       appendError(msg);

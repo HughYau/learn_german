@@ -54,6 +54,7 @@ body::before{
 .nb-ring{border-radius:50%; border:2.5px solid currentColor; background:none}
 .nb-wave{background:linear-gradient(to right,currentColor 0 2px,transparent 2px 5px,currentColor 5px 7px,transparent 7px 10px,currentColor 10px 11px)}
 .nb-page{background:currentColor; clip-path:polygon(0 0, 62% 0, 100% 38%, 100% 100%, 0 100%)}
+.nb-star{background:currentColor; clip-path:polygon(50% 0,61% 34%,98% 34%,68% 55%,79% 91%,50% 69%,21% 91%,32% 55%,2% 34%,39% 34%)}
 .due-badge{margin-left:6px; background:var(--yellow); color:#221D14; font-size:.68rem; font-weight:800; border-radius:999px; padding:1px 7px; font-style:normal}
 .side-foot{padding:14px 22px 0; border-top:1px solid rgba(239,233,219,.14)}
 .settings-link{color:#B4AA93; text-decoration:none; font-size:.85rem; font-weight:600}
@@ -87,6 +88,18 @@ h1.page .de{font-style:italic; color:var(--red)}
 .fav-chip-row{display:flex; flex-wrap:wrap; gap:10px}
 .fav-chip{display:inline-block; text-decoration:none; font-family:var(--font-ui); border:1.5px solid var(--line2); background:var(--panel); color:var(--ink); border-radius:999px; padding:7px 16px; font-size:.85rem; font-weight:600; transition:all .15s}
 .fav-chip:hover{border-color:var(--yellow); background:var(--yellow-soft)}
+.favorites-empty{padding:30px}
+.favorites-empty p{color:var(--muted); margin:8px 0 18px}
+.favorites-actions{display:flex; flex-wrap:wrap; gap:10px}
+.favorites-list{overflow:hidden; margin-bottom:28px}
+.favorite-entry{display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--line)}
+.favorite-entry:last-child{border-bottom:none}
+.favorite-main{display:flex; align-items:center; gap:14px; flex:1; min-width:0; padding:17px 20px; color:inherit; text-decoration:none}
+.favorite-main:hover{background:var(--panel2)}
+.favorite-main small{display:block; margin-top:3px; color:var(--muted); font-family:var(--font-de); font-style:italic}
+.favorite-star{color:var(--yellow); font-size:1.2rem}
+.favorite-remove{margin-right:16px; border:none; background:none; color:var(--muted); cursor:pointer; white-space:nowrap; font:600 .78rem var(--font-ui)}
+.favorite-remove:hover,.favorite-remove:focus-visible{color:var(--red); text-decoration:underline}
 
 .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow)}
 

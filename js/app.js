@@ -4,6 +4,7 @@ import { counts, allStudyCards } from './srs.js';
 
 import { render as renderHome } from './views/home.js';
 import { render as renderUnits } from './views/units.js';
+import { render as renderFavorites } from './views/favorites.js';
 import { render as renderUnit } from './views/unit.js';
 import { render as renderLesson } from './views/lesson.js';
 import { render as renderCards } from './views/cards.js';
@@ -18,6 +19,7 @@ import { render as renderSearch } from './views/search.js';
 
 const ROUTES = [
   { re: /^#\/$/, name: 'home', render: (c) => renderHome(c) },
+  { re: /^#\/favorites$/, name: 'favorites', render: (c) => renderFavorites(c) },
   { re: /^#\/units$/, name: 'units', render: (c) => renderUnits(c) },
   { re: /^#\/unit\/([^/]+)$/, name: 'units', render: (c, m) => renderUnit(c, m[1]) },
   { re: /^#\/lesson\/([^/]+)$/, name: 'units', render: (c, m) => renderLesson(c, m[1]) },

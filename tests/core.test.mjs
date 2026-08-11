@@ -16,6 +16,7 @@ globalThis.sessionStorage = new MemoryStorage();
 
 const state = await import('../js/state.js');
 const srs = await import('../js/srs.js');
+const ai = await import('../js/ai.js');
 const { allVocabCards } = await import('../data/course.js');
 
 function resetStorage() {
@@ -55,6 +56,22 @@ test('打开课程只解锁词卡，完成学习动作才计入学习日', { con
   assert.equal(state.isLessonPassed('u0l1'), true);
   assert.equal(state.doneCount(['u0l1']), 1);
 });
+test('课程和语法收藏可以集中保存与取消', { concurrency: false }, () => {
+  resetStorage();
+  assert.equal(state.toggleFav('lessons', 'u0l1'), true);
+  assert.equal(state.toggleFav('grammar', 'g1'), true);
+  assert.deepEqual(state.getFavs(), { lessons: ['u0l1'], grammar: ['g1'] });
+  assert.equal(state.isFav('lessons', 'u0l1'), true);
+  assert.equal(state.toggleFav('lessons', 'u0l1'), false);
+  assert.deepEqual(state.getFavs(), { lessons: [], grammar: ['g1'] });
+});
+
+test('公开站直连用户端点，本地站继续使用同源代理', { concurrency: false }, () => {
+  assert.equal(ai.aiRequestUrl('/models', 'https://api.example.com/v1', 'hughyau.com'), 'https://api.example.com/v1/models');
+  assert.equal(ai.aiRequestUrl('/models', 'https://api.example.com/v1', '127.0.0.1'), '/api/models');
+  assert.throws(() => ai.aiRequestUrl('/models', 'http://api.example.com/v1', 'hughyau.com'), /unsafe-endpoint/);
+});
+
 
 test('已有 SRS 记录的旧卡在升级后不会重新锁定', { concurrency: false }, () => {
   resetStorage();

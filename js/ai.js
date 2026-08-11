@@ -1,6 +1,4 @@
-// OpenAI 兼容 API 客户端（GWDG SAIA 等学术 API），另外原生支持 Anthropic Messages API
-// 注意：SAIA 网关（Kong）对 CORS 预检请求也要求 API key，浏览器无法直连，
-// 所以所有请求都走本机 server.py 提供的同源代理 /api/*，代理再转发到 X-Upstream-Base 指定的真实端点。
+// AI 客户端：本地运行时经 server.py 代理；公开静态站由浏览器直连用户配置的端点。
 import { getSettings, setSettings } from './state.js';
 
 // 服务商预设表，供设置页渲染下拉选项
@@ -16,7 +14,7 @@ export const PROVIDERS = [
   { id: 'siliconflow', label: 'SiliconFlow 硅基流动', base: 'https://api.siliconflow.cn/v1', hint: 'siliconflow.cn 获取 Key' },
   { id: 'openrouter', label: 'OpenRouter', base: 'https://openrouter.ai/api/v1', hint: 'openrouter.ai 获取 Key（聚合多家模型）' },
   { id: 'ollama', label: 'Ollama（本地）', base: 'http://localhost:11434/v1', hint: '本机运行 Ollama 即可，无需 API Key', noKey: true },
-  { id: 'custom', label: '自定义（OpenAI 兼容）', base: '', hint: '填入任意 OpenAI 兼容端点（以 /v1 结尾）' },
+  { id: 'custom', label: '自定义（OpenAI 兼容）', base: '', hint: '填入允许浏览器跨域访问的 OpenAI 兼容端点' },
 ];
 
 function providerDef(id) { return PROVIDERS.find(p => p.id === id); }
@@ -27,38 +25,67 @@ export function hasKey() {
   return !!apiKey;
 }
 
-function upstreamHeaders(provider, apiKey, baseUrl) {
-  const headers = { 'X-Upstream-Base': baseUrl || 'https://chat-ai.academiccloud.de/v1' };
+export function usesLocalAiProxy(hostname = globalThis.location?.hostname || '') {
+  return hostname === 'localhost' || hostname === '127.0.0.1';
+}
+
+function safeBaseUrl(baseUrl) {
+  const base = String(baseUrl || '').trim().replace(/\/+$/, '');
+  if (!base) throw new Error('no-endpoint');
+  let parsed;
+  try { parsed = new URL(base); }
+  catch { throw new Error('unsafe-endpoint'); }
+  const localHttp = parsed.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(parsed.hostname);
+  if (parsed.protocol !== 'https:' && !localHttp) throw new Error('unsafe-endpoint');
+  return base;
+}
+
+export function aiRequestUrl(path, baseUrl, hostname = globalThis.location?.hostname || '') {
+  if (usesLocalAiProxy(hostname)) return `/api${path}`;
+  return safeBaseUrl(baseUrl) + path;
+}
+
+function requestHeaders(provider, apiKey, baseUrl, hostname = globalThis.location?.hostname || '') {
+  const localProxy = usesLocalAiProxy(hostname);
+  const headers = {};
+  if (localProxy) headers['X-Upstream-Base'] = safeBaseUrl(baseUrl);
   if (provider === 'anthropic') {
     if (apiKey) {
       headers['x-api-key'] = apiKey;
       headers['anthropic-version'] = '2023-06-01';
+      if (!localProxy) headers['anthropic-dangerous-direct-browser-access'] = 'true';
     }
   } else if (apiKey) {
-    // ollama 本地无需 Key 时不发 Authorization 头，其余服务商都用 Bearer
-    headers['Authorization'] = `Bearer ${apiKey}`;
+    headers.Authorization = `Bearer ${apiKey}`;
   }
   return headers;
+}
+
+function directFetchOptions() {
+  return usesLocalAiProxy() ? {} : { credentials: 'omit', referrerPolicy: 'no-referrer' };
 }
 
 export async function chat(messages, system) {
   const { baseUrl, apiKey, model, provider } = getSettings();
   if (!apiKey && !providerDef(provider)?.noKey) throw new Error('no-key');
+  if (!model) throw new Error('no-model');
   const isAnthropic = provider === 'anthropic';
+  const path = isAnthropic ? '/messages' : '/chat/completions';
   let res;
   try {
-    res = await fetch(isAnthropic ? '/api/messages' : '/api/chat/completions', {
+    res = await fetch(aiRequestUrl(path, baseUrl), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...upstreamHeaders(provider, apiKey, baseUrl),
+        ...requestHeaders(provider, apiKey, baseUrl),
       },
+      ...directFetchOptions(),
       body: JSON.stringify(isAnthropic ? {
         model,
-        max_tokens: 1600, // 推理型模型会先消耗思考 token，给足余量
+        max_tokens: 1600,
         temperature: 0.7,
         system,
-        messages, // 只含 user/assistant 轮，Anthropic 的 system 是单独字段
+        messages,
       } : {
         model,
         messages: [{ role: 'system', content: system }, ...messages],
@@ -67,11 +94,11 @@ export async function chat(messages, system) {
       }),
     });
   } catch (e) {
+    if (['no-endpoint', 'unsafe-endpoint'].includes(e?.message)) throw e;
     throw new Error('network');
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    // SAIA/Kong 用顶层 {message}，OpenAI 风格用 {error:{message}}，两种都兼容
     const apiMsg = body?.error?.message || body?.message || `HTTP ${res.status}`;
     const err = new Error((res.status === 401 || res.status === 403) ? 'auth' : apiMsg);
     err.status = res.status;
@@ -91,7 +118,6 @@ export async function chat(messages, system) {
   }
   if (data?.choices?.[0]?.finish_reason === 'content_filter') throw new Error('refusal');
   const msg = data?.choices?.[0]?.message || {};
-  // 剥掉推理模型可能内嵌在正文里的 <think> 思维链；单独的 reasoning_content 字段直接忽略
   const text = (msg.content || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
   if (!text) throw new Error('empty-content');
   return text;
@@ -101,23 +127,23 @@ export async function chat(messages, system) {
 // 结果缓存 10 分钟，避免每次打开陪练页都请求一次。
 export async function ensureValidModel() {
   const { baseUrl } = getSettings();
-  const CACHE_KEY = 'dl.modelcheck.' + baseUrl; // 按端点分开缓存，避免切换服务商后用到旧缓存
+  const CACHE_KEY = 'dl.modelcheck.' + baseUrl;
   try {
     const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
     if (cached && Date.now() - cached.at < 10 * 60 * 1000) return cached.result;
   } catch { /* 忽略缓存损坏 */ }
 
-  const models = await fetchModels(); // 失败会抛出，由调用方处理
+  const models = await fetchModels();
   const cur = getSettings().model;
   let result;
   if (models.includes(cur)) {
     result = { changed: false, model: cur };
   } else {
-    // 原模型不存在：优先挑各家的旗舰对话模型，再退到大参数开源模型保底
     const pick = models.find(m => /gpt-4|claude|deepseek-chat|gemini|glm-4|qwen(2\.5|3)?[-.]?(max|plus|72b)/i.test(m))
       || models.find(m => /qwen.*(?:2\d\d|3\d\d)b/i.test(m))
       || models.find(m => /qwen|llama.*70b|gpt-oss/i.test(m))
       || models[0];
+    if (!pick) throw new Error('empty-model-list');
     setSettings({ model: pick });
     result = { changed: true, model: pick, old: cur };
   }
@@ -127,9 +153,16 @@ export async function ensureValidModel() {
 
 export async function fetchModels() {
   const { baseUrl, apiKey, provider } = getSettings();
-  const res = await fetch('/api/models', {
-    headers: upstreamHeaders(provider, apiKey, baseUrl),
-  });
+  let res;
+  try {
+    res = await fetch(aiRequestUrl('/models', baseUrl), {
+      headers: requestHeaders(provider, apiKey, baseUrl),
+      ...directFetchOptions(),
+    });
+  } catch (e) {
+    if (['no-endpoint', 'unsafe-endpoint'].includes(e?.message)) throw e;
+    throw new Error('network');
+  }
   if (!res.ok) {
     const err = new Error(`HTTP ${res.status}`);
     err.status = res.status;
