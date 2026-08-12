@@ -1,6 +1,6 @@
 // #/reading 分级阅读文库：楼道告示、朋友消息、二手广告、邮件、博客……点词看释义，读完做题
 import { el } from '../ui.js';
-import { speak } from '../audio.js';
+import { speak, speakWord } from '../audio.js';
 import { readingTexts } from '../../data/reading.js';
 import { getLibraryState, recordLibraryScore } from '../state.js';
 
@@ -36,7 +36,8 @@ function showBubble(span, word, meaning) {
   closeBubble();
   const bubble = el('div', { class: 'gl-bubble' });
   const playBtn = el('button', { class: 'gl-bubble-play', type: 'button' }, '▶');
-  playBtn.addEventListener('click', (e) => { e.stopPropagation(); speak(word); });
+  // speakWord 会查发音词典补上冠词：生词是名词时读成 "die Stadt" 而不是 "Stadt"
+  playBtn.addEventListener('click', (e) => { e.stopPropagation(); speakWord(word); });
   bubble.append(
     el('div', { class: 'gl-bubble-word' }, word, playBtn),
     el('div', { class: 'gl-bubble-mean' }, meaning),
