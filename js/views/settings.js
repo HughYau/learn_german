@@ -1,7 +1,7 @@
 // #/settings 设置
 import { el } from '../ui.js';
 import { getSettings, setSettings, resetAll, exportData, importData } from '../state.js';
-import { germanVoices, speak, speechSynthesisSupported } from '../audio.js';
+import { germanVoices, hasGermanVoice, speak, speechSynthesisSupported } from '../audio.js';
 import { fetchModels, PROVIDERS } from '../ai.js';
 
 function fieldBlock(labelText, node) {
@@ -132,6 +132,17 @@ export function render(container) {
   g2.append(el('div', { class: 'd' }, speechSynthesisSupported
     ? '推荐使用 Edge 浏览器的 Natural 语音，音质更接近真人。'
     : '当前浏览器不支持语音合成，朗读按钮会自动停用；课程文字内容仍可正常学习。'));
+
+  // 没装德语语音时，朗读会退回系统默认音色（多半是英语），发音必然不准——明确告诉用户
+  const voiceWarn = el('div', { class: 'd', style: 'color:var(--red); margin-top:6px' },
+    '⚠ 没有检测到德语语音（de-DE），朗读会退回系统默认音色，发音可能不准。'
+    + '建议改用 Edge / Chrome，或在系统语言设置里安装德语语音包。');
+  function syncVoiceWarn() { voiceWarn.hidden = !speechSynthesisSupported || hasGermanVoice(); }
+  syncVoiceWarn();
+  if (typeof speechSynthesis !== 'undefined') {
+    speechSynthesis.addEventListener('voiceschanged', syncVoiceWarn);
+  }
+  g2.append(voiceWarn);
 
   const voiceSelect = el('select', {});
   function fillVoices() {
