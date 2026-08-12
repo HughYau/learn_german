@@ -570,3 +570,46 @@ input[type=range]{max-width:300px; accent-color:var(--red)}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important; transition-duration:.01ms!important}
 }
+
+/* ============ 长按/右键查发音弹窗 ============ */
+.pron-pop{
+  position:fixed; z-index:1200; background:var(--ink); color:#EFE9DB;
+  border-radius:12px; padding:12px 14px 10px; box-shadow:0 10px 30px rgba(0,0,0,.32);
+  max-width:min(320px,86vw); font-family:var(--font-ui);
+  animation:fadeUp .12s ease both;
+}
+.pron-pop::after{
+  content:""; position:absolute; left:50%; transform:translateX(-50%);
+  border:7px solid transparent; pointer-events:none;
+}
+.pron-above::after{top:100%; border-top-color:var(--ink)}
+.pron-below::after{bottom:100%; border-bottom-color:var(--ink)}
+
+.pron-head{display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap}
+.pron-head .art{font-size:.78rem; margin-right:0}
+.pron-word{font-family:var(--font-de); font-weight:600; font-size:1.12rem; color:#FFF6EC}
+.pron-play{
+  border:1.5px solid rgba(239,233,219,.35); background:none; color:#EFE9DB;
+  border-radius:999px; width:26px; height:26px; font-size:.72rem; cursor:pointer;
+  flex:0 0 26px; transition:background .15s, border-color .15s; line-height:1;
+}
+.pron-play:hover:not(:disabled){background:var(--red); border-color:var(--red)}
+.pron-play:disabled{opacity:.4; cursor:not-allowed}
+.pron-play.slow{margin-left:-2px}
+
+/* 音节：重音音节加粗高亮，上方一个重音符 */
+.pron-syl{font-family:var(--font-de); font-size:1.05rem; letter-spacing:.02em; margin-bottom:6px}
+.pron-dot{opacity:.4; margin:0 2px}
+.pron-s{position:relative; color:#E4DCC8}
+.pron-s.stressed{
+  color:#FFD9A8; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+}
+.pron-s.stressed::before{
+  content:"ˈ"; position:absolute; left:50%; top:-.72em; transform:translateX(-50%);
+  font-size:.8em; color:#FFD9A8; opacity:.85;
+}
+.pron-ipa{font-size:.92rem; color:#CFE3D2; font-family:'Segoe UI',system-ui,sans-serif; margin-bottom:5px}
+.pron-note{font-size:.74rem; color:#A99E88; line-height:1.4}
+
+/* 长按期间不要冒出系统的文本选择/长按菜单 */
+.fc-face .w,.wort-card .w,.vocab-table td.w{-webkit-touch-callout:none}
