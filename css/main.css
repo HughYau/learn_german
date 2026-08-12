@@ -613,3 +613,18 @@ input[type=range]{max-width:300px; accent-color:var(--red)}
 
 /* 长按期间不要冒出系统的文本选择/长按菜单 */
 .fc-face .w,.wort-card .w,.vocab-table td.w{-webkit-touch-callout:none}
+
+/* ============ 闪卡重音标注 ============ */
+.fc-stress{font-family:var(--font-de)}
+.fc-stress .s{position:relative}
+.fc-stress .s.on{position:relative}
+.fc-stress .s.on::before{
+  content:"ˈ"; position:absolute; left:50%; top:-.55em; transform:translateX(-50%);
+  font-size:.55em; color:var(--red); opacity:.9; font-weight:700;
+}
+.fc-syl-hint{
+  font-size:.82rem; color:var(--muted); font-family:var(--font-ui);
+  margin-top:4px; letter-spacing:.04em;
+}
+.fc-syl-hint b{color:var(--ink2); font-weight:700}
+.fc-ipa{font-size:.85rem; color:var(--muted); margin-top:2px}
