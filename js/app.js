@@ -1,6 +1,7 @@
 // 入口 + hash 路由
 import { el } from './ui.js';
 import { counts, allStudyCards } from './srs.js';
+import { installPronunciationLookup } from './pronounce-popup.js';
 
 import { render as renderHome } from './views/home.js';
 import { render as renderUnits } from './views/units.js';
@@ -89,5 +90,7 @@ function router() {
 }
 
 window.addEventListener('hashchange', router);
+// 长按/右键查发音：一次性挂在 document 上，用事件委托覆盖所有视图
+installPronunciationLookup();
 // 模块脚本在 DOM 解析完后执行，直接渲染即可——不等 load 事件（模块加载慢于 load 时会错过）
 router();

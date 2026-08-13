@@ -125,7 +125,8 @@ export function render(container) {
     const artColor = ART_COLOR[card.art];
     const wLine = el('div', { class: 'w' });
     if (card.art) wLine.append(el('span', { style: `color:var(--${artColor})` }, card.art + ' '));
-    wLine.append(card.de + ' ', ttsBtn(card.de));
+    // 名词连冠词一起读——之前每日一词只读光杆名词，听不出词性
+    wLine.append(card.de + ' ', ttsBtn(card.de, { art: card.art }));
     wortCard.append(wLine, el('div', { class: 'm' }, card.zh));
     if (card.ex) {
       wortCard.append(el('div', { class: 'ex' }, card.ex));
