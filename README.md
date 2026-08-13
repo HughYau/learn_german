@@ -4,7 +4,7 @@
 
 一款面向中文学习者的开源德语学习网站，从零基础出发，围绕真实生活场景覆盖 A1–B1 的课程、词汇和听说读写练习。
 
-🌐 **在线学习：** [hughyau.com/learn_german/](hughyau.com/learn_german/)
+🌐 **在线学习：** [https://hughyau.com/learn_german/](https://hughyau.com/learn_german/)
 
 ## 你可以学什么
 
