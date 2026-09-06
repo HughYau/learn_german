@@ -1,5 +1,5 @@
 // #/lesson/:id 课程详情（核心视图）
-import { el } from '../ui.js';
+import { el, wrapTables } from '../ui.js';
 import { ttsBtn } from '../audio.js';
 import { touchLesson, lessonState, markDone, markTaskDone, recordScore, toggleFav, isFav, isLessonPassed, isLessonCompleted } from '../state.js';
 import { runExercises } from '../exercises.js';
@@ -64,7 +64,7 @@ function renderSection(section) {
   } else if (section.type === 'dialogue') {
     wrap.append(dialogueCard(section));
   } else if (section.type === 'grammar') {
-    wrap.append(el('div', { class: 'card grammar-box', html: section.html }));
+    wrap.append(wrapTables(el('div', { class: 'card grammar-box', html: section.html })));
   } else if (section.type === 'tip') {
     wrap.append(el('div', { class: 'tip-box', html: section.html }));
   } else {
@@ -86,14 +86,6 @@ export function render(container, id) {
   touchLesson(lesson.id);
   const st = lessonState(lesson.id);
 
-  container.append(el('div', { class: 'crumb' },
-    el('a', { href: '#/' }, '首页'), ' / ',
-    el('a', { href: `#/unit/${unit.id}` }, unit.zh), ' / ',
-    '本课'
-  ));
-
-  container.append(el('div', { class: 'kicker' }, `LEKTION ${unit.num} · ${unit.zh}`));
-
   const favBtn = el('button', {
     class: 'fav-btn' + (isFav('lessons', lesson.id) ? ' active' : ''),
     type: 'button',
@@ -105,7 +97,15 @@ export function render(container, id) {
     favBtn.textContent = nowFav ? '★' : '☆';
     favBtn.title = nowFav ? '取消收藏' : '收藏本课';
   });
-  container.append(el('h1', { class: 'page' }, `${lesson.title} `, el('span', { class: 'de' }, lesson.de), favBtn));
+  // 收藏星放在面包屑这一行的右侧，不和长标题抢位置（手机上尤其挤）
+  container.append(el('div', { class: 'crumb' },
+    el('a', { href: '#/' }, '首页'), ' / ',
+    el('a', { href: `#/unit/${unit.id}` }, unit.zh), ' / ',
+    '本课',
+    favBtn
+  ));
+  container.append(el('div', { class: 'kicker' }, `LEKTION ${unit.num} · ${unit.zh}`));
+  container.append(el('h1', { class: 'page' }, `${lesson.title} `, el('span', { class: 'de' }, lesson.de)));
 
   if (lesson.intro) container.append(el('div', { class: 'intro' }, lesson.intro));
 

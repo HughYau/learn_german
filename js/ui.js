@@ -14,6 +14,18 @@ export function el(tag, attrs = {}, ...children) {
   return node;
 }
 
+// 给 innerHTML 灌进来的富文本里的 <table> 外套一层横向滚动容器，窄屏上宽表格自己滚、不撑开整页
+export function wrapTables(root) {
+  root.querySelectorAll('table').forEach(table => {
+    if (table.parentElement?.classList.contains('table-scroll')) return;
+    const scroller = document.createElement('div');
+    scroller.className = 'table-scroll';
+    table.replaceWith(scroller);
+    scroller.append(table);
+  });
+  return root;
+}
+
 export function esc(s) {
   return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }

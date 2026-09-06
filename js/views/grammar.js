@@ -1,5 +1,5 @@
 // #/grammar 语法手册（可选深链 #/grammar/:topicId 直接展开对应条目）
-import { el } from '../ui.js';
+import { el, wrapTables } from '../ui.js';
 import { grammarTopics } from '../../data/grammar.js';
 import { toggleFav, isFav } from '../state.js';
 
@@ -42,7 +42,7 @@ export function render(container, topicId) {
       el('div', { class: 'arrow' }, '▾')
     );
     head.addEventListener('click', () => acc.classList.toggle('open'));
-    const body = el('div', { class: 'acc-body' }, el('div', { class: 'grammar-box', html: topic.html }));
+    const body = el('div', { class: 'acc-body' }, wrapTables(el('div', { class: 'grammar-box', html: topic.html })));
     acc.append(head, body);
     container.append(acc);
     if (hasTarget && topic.id === topicId) targetAcc = acc;

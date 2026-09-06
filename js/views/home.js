@@ -1,10 +1,7 @@
-// 首页
+// 首页：不做仪表盘、不打卡——打开就能学。一张“现在开始”大卡 + 每日一词 + 课程地图 + 随便看看
 import { el } from '../ui.js';
 import { ttsBtn } from '../audio.js';
-import {
-  lastLesson, studyDays, doneCount, lessonState,
-  isLessonPassed, todayActivityCount,
-} from '../state.js';
+import { lastLesson, doneCount, isLessonPassed } from '../state.js';
 import { counts, allStudyCards } from '../srs.js';
 import { allLessons, findLesson, allVocabCards } from '../../data/course.js';
 import { phases } from '../../data/phases.js';
@@ -12,11 +9,20 @@ import { phases } from '../../data/phases.js';
 const WD = ['SONNTAG', 'MONTAG', 'DIENSTAG', 'MITTWOCH', 'DONNERSTAG', 'FREITAG', 'SAMSTAG'];
 const ART_COLOR = { der: 'blue', die: 'red', das: 'green' };
 
+const EXPLORE = [
+  { href: '#/listening', zh: '听力', de: 'Hören', icon: 'nb-wave' },
+  { href: '#/reading', zh: '阅读', de: 'Lesen', icon: 'nb-page' },
+  { href: '#/phrases', zh: '短语', de: 'Phrasen', icon: 'nb-dot' },
+  { href: '#/chat', zh: 'AI 陪练', de: 'Tandem', icon: 'nb-half' },
+  { href: '#/grammar', zh: '语法', de: 'Grammatik', icon: 'nb-lines' },
+];
+
 function dayOfYear(d) {
   const start = new Date(d.getFullYear(), 0, 0);
   return Math.floor((d - start) / 86400000);
 }
 
+// 上次没学完的课优先；否则主线上第一节未达标的课；全都达标就停在最后一课
 function learningTarget(lessons) {
   const lastId = lastLesson();
   if (lastId && !isLessonPassed(lastId)) {
@@ -27,18 +33,66 @@ function learningTarget(lessons) {
   return next || (lessons.length ? lessons[lessons.length - 1] : null);
 }
 
-function planRow(icon, title, detail, href, done = false) {
-  const attrs = { class: 'today-row' + (done ? ' done' : '') };
-  if (href) attrs.href = href;
-  const node = el(href ? 'a' : 'div', attrs,
-    el('span', { class: 'today-icon' }, done ? '✓' : icon),
-    el('span', { class: 'today-copy' },
-      el('b', {}, title),
-      el('small', {}, detail)
-    ),
-    href ? el('span', { class: 'today-arrow' }, '→') : null
-  );
-  return node;
+function startCard(target, cardCounts) {
+  const card = el('section', { class: 'card start-card', 'aria-labelledby': 'start-title' });
+  if (!target) {
+    card.append(el('h2', { id: 'start-title' }, '课程还在准备中'));
+    return card;
+  }
+  const { unit, lesson } = target;
+  const passed = isLessonPassed(lesson.id);
+  const resumed = lastLesson() === lesson.id && !passed;
+  card.append(el('div', { class: `shape bgc-${unit.color}` }));
+  card.append(el('div', { class: 'kicker' }, resumed ? '接着上次' : (passed ? '回顾' : '下一课')));
+  card.append(el('h2', { id: 'start-title' }, lesson.de));
+  card.append(el('p', { class: 'where' }, `${unit.zh} · ${lesson.title}`));
+
+  const actions = el('div', { class: 'start-actions' });
+  actions.append(el('a', { class: 'btn big', href: `#/lesson/${lesson.id}` }, resumed ? '继续 →' : (passed ? '回顾 →' : '开始 →')));
+  if (cardCounts.due > 0) {
+    actions.append(el('a', { class: 'btn ghost', href: '#/cards' }, `复习 ${cardCounts.due} 张`));
+  } else if (cardCounts.fresh > 0) {
+    actions.append(el('a', { class: 'btn ghost', href: '#/cards' }, '新词卡'));
+  }
+  card.append(actions);
+  return card;
+}
+
+function wortCard(studyCards, now) {
+  const pool = studyCards.length ? studyCards : allVocabCards().slice(0, 20);
+  const card = el('div', { class: 'card wort-card' });
+  if (!pool.length) return card;
+  const w = pool[dayOfYear(now) % pool.length];
+  card.append(el('div', { class: 'kicker' }, 'WORT DES TAGES · 每日一词'));
+  const line = el('div', { class: 'w' });
+  if (w.art) line.append(el('span', { style: `color:var(--${ART_COLOR[w.art]})` }, w.art + ' '));
+  line.append(w.de + ' ', ttsBtn(w.de));
+  card.append(line, el('div', { class: 'm' }, w.zh));
+  if (w.ex) {
+    card.append(el('div', { class: 'ex' }, w.ex));
+    if (w.exZh) card.append(el('div', { class: 'exzh' }, w.exZh));
+  }
+  return card;
+}
+
+function mapCard(lessons) {
+  const allIds = lessons.map(l => l.lesson.id);
+  const pct = allIds.length ? Math.round((doneCount(allIds) / allIds.length) * 100) : 0;
+  let current = phases[phases.length - 1];
+  for (const { unit, lesson } of lessons) {
+    if (!isLessonPassed(lesson.id)) {
+      const phase = phases.find(ph => ph.unitIds.includes(unit.id));
+      if (phase) current = phase;
+      break;
+    }
+  }
+  const card = el('a', { class: 'card map-card', href: '#/units' });
+  card.append(el('div', { class: 'kicker' }, '课程地图 · LEKTIONEN'));
+  card.append(el('div', { class: 'map-phase' }, `Phase ${current.num} · ${current.zh}`));
+  card.append(el('div', { class: 'map-level' }, current.level));
+  card.append(el('div', { class: 'progress-pill' }, el('i', { class: 'bgc-red', style: `width:${pct}%` })));
+  card.append(el('div', { class: 'map-cta' }, '课程地图 →'));
+  return card;
 }
 
 export function render(container) {
@@ -50,130 +104,31 @@ export function render(container) {
 
   container.append(el('div', { class: 'kicker' }, `${WD[now.getDay()]} · ${now.getMonth() + 1}月${now.getDate()}日`));
   container.append(el('h1', { class: 'page' }, `${greet},`));
-  container.append(el('p', { class: 'page-sub' }, '先完成今天最重要的一步，再自由探索。'));
 
   const lessons = allLessons();
-  const target = learningTarget(lessons);
   const studyCards = allStudyCards();
   const cardCounts = counts(studyCards);
-  const activityCount = todayActivityCount();
-  const weakLessons = lessons.filter(({ lesson }) => {
-    const st = lessonState(lesson.id);
-    return st.best > 0 && st.best < 70;
-  });
-
-  // ---- 今日计划 ----
-  const today = el('section', { class: 'card today-card', 'aria-labelledby': 'today-title' });
-  today.append(el('div', { class: 'today-head' },
-    el('div', {},
-      el('div', { class: 'kicker' }, 'HEUTE · 今日学习'),
-      el('h2', { id: 'today-title' }, activityCount ? '继续保持节奏' : '从这一小步开始')
-    ),
-    el('span', { class: 'today-activity' }, activityCount ? `今日 ${activityCount} 次学习动作` : '尚未开始')
-  ));
-  today.append(planRow(
-    '1',
-    cardCounts.due ? `复习 ${cardCounts.due} 张到期词卡` : '到期词卡已清零',
-    cardCounts.due ? '先处理快要遗忘的内容' : (cardCounts.fresh ? `还有 ${cardCounts.fresh} 张已解锁新词` : '学完一课会解锁对应词汇'),
-    cardCounts.due || cardCounts.fresh ? '#/cards' : null,
-    !cardCounts.due
-  ));
-  if (target) {
-    today.append(planRow(
-      '2',
-      isLessonPassed(target.lesson.id) ? '课程主线已完成' : target.lesson.title,
-      `${target.unit.zh} · ${target.lesson.de}`,
-      isLessonPassed(target.lesson.id) ? '#/units' : `#/lesson/${target.lesson.id}`,
-      isLessonPassed(target.lesson.id)
-    ));
-  }
-  if (weakLessons.length) {
-    const weak = weakLessons[0];
-    const best = lessonState(weak.lesson.id).best;
-    today.append(planRow('3', '加强一门薄弱课', `${weak.lesson.title} · 最好 ${best}%`, `#/lesson/${weak.lesson.id}`));
-  } else {
-    today.append(planRow('3', '完成一次真实生活任务', '在课时底部勾选，记录真正用过的德语', target ? `#/lesson/${target.lesson.id}` : '#/units'));
-  }
-  container.append(today);
 
   const stagger = el('div', { class: 'stagger' });
   container.append(stagger);
 
-  // ---- 继续学习 + 每日一词 ----
-  const heroRow = el('div', { class: 'hero-row' });
-  stagger.append(heroRow);
+  stagger.append(startCard(learningTarget(lessons), cardCounts));
 
-  const continueCard = el('div', { class: 'card continue-card' });
-  if (target) {
-    const { unit, lesson } = target;
-    continueCard.append(el('div', { class: `shape bgc-${unit.color}` }));
-    continueCard.append(el('div', { class: 'kicker' }, isLessonPassed(lesson.id) ? '课程回顾' : '下一步'));
-    continueCard.append(el('h3', {}, lesson.de));
-    continueCard.append(el('p', {}, `${unit.zh} · ${lesson.title}`));
-    continueCard.append(el('a', { class: 'btn', href: `#/lesson/${lesson.id}` }, isLessonPassed(lesson.id) ? '回顾 →' : '开始 →'));
-  } else {
-    continueCard.append(el('div', { class: 'kicker' }, '继续学习'));
-    continueCard.append(el('p', {}, '课程还在准备中……'));
-  }
-  heroRow.append(continueCard);
+  const row = el('div', { class: 'hero-row' });
+  row.append(wortCard(studyCards, now), mapCard(lessons));
+  stagger.append(row);
 
-  const dailyPool = studyCards.length ? studyCards : allVocabCards().slice(0, 20);
-  const wortCard = el('div', { class: 'card wort-card' });
-  if (dailyPool.length) {
-    const card = dailyPool[dayOfYear(now) % dailyPool.length];
-    wortCard.append(el('div', { class: 'kicker' }, 'WORT DES TAGES · 每日一词'));
-    const artColor = ART_COLOR[card.art];
-    const wLine = el('div', { class: 'w' });
-    if (card.art) wLine.append(el('span', { style: `color:var(--${artColor})` }, card.art + ' '));
-    wLine.append(card.de + ' ', ttsBtn(card.de));
-    wortCard.append(wLine, el('div', { class: 'm' }, card.zh));
-    if (card.ex) {
-      wortCard.append(el('div', { class: 'ex' }, card.ex));
-      if (card.exZh) wortCard.append(el('div', { class: 'exzh' }, card.exZh));
-    }
-  }
-  heroRow.append(wortCard);
-
-  // ---- 可信统计 ----
-  const statRow = el('div', { class: 'stat-row' });
-  stagger.append(statRow);
-  const learnedStat = el('div', { class: 'stat card' },
-    el('b', {}, String(cardCounts.learned)), el('span', {}, '已进入复习'),
-    el('div', { class: 'under bgc-blue' }));
-  const dueStat = el('div', { class: 'stat card' },
-    el('b', {}, String(cardCounts.due)), el('span', {}, '待复习'),
-    el('div', { class: 'under bgc-yellow' }));
-  if (cardCounts.due > 0) {
-    dueStat.style.cursor = 'pointer';
-    dueStat.addEventListener('click', () => { location.hash = '#/cards'; });
-  }
-  const daysStat = el('div', { class: 'stat card' },
-    el('b', {}, String(studyDays())), el('span', {}, '有效学习天数'),
-    el('div', { class: 'under bgc-green' }));
-  statRow.append(learnedStat, dueStat, daysStat);
-
-  // ---- 课程地图 ----
-  const allIds = lessons.map(l => l.lesson.id);
-  const totalLessons = allIds.length;
-  const doneTotal = doneCount(allIds);
-  const donePct = totalLessons ? Math.round((doneTotal / totalLessons) * 100) : 0;
-
-  let currentPhase = phases[phases.length - 1];
-  for (const { unit, lesson } of lessons) {
-    if (!isLessonPassed(lesson.id)) {
-      const phase = phases.find(ph => ph.unitIds.includes(unit.id));
-      if (phase) currentPhase = phase;
-      break;
-    }
-  }
-
-  const mapCard = el('a', { class: 'card map-card', href: '#/units' });
-  mapCard.append(el('div', { class: 'kicker' }, '课程地图 · LEKTIONEN'));
-  mapCard.append(el('div', { class: 'map-progress-row' },
-    el('div', { class: 'map-progress-num' }, el('b', {}, String(doneTotal)), ` / ${totalLessons} 课达标`),
-    el('div', { class: 'map-phase-tag' }, `当前 Phase ${currentPhase.num} · ${currentPhase.level}`)
-  ));
-  mapCard.append(el('div', { class: 'progress-pill' }, el('i', { class: 'bgc-red', style: `width:${donePct}%` })));
-  mapCard.append(el('div', { class: 'map-cta' }, '进入课程地图 →'));
-  container.append(mapCard);
+  // ---- 随便看看 ----
+  const explore = el('section', { class: 'explore' });
+  explore.append(el('h2', { class: 'sec' }, '随便看看'));
+  const grid = el('div', { class: 'explore-grid' });
+  EXPLORE.forEach(x => {
+    grid.append(el('a', { class: 'explore-chip', href: x.href },
+      el('i', { class: `nb ${x.icon}` }),
+      el('span', {}, x.zh),
+      el('em', {}, x.de)
+    ));
+  });
+  explore.append(grid);
+  stagger.append(explore);
 }

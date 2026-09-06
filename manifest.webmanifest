@@ -1,0 +1,17 @@
+{
+  "name": "DailyGerman · 日常德语",
+  "short_name": "DailyGerman",
+  "description": "随时随地学德语：课程、词卡、听力、阅读、AI 陪练",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5F0E4",
+  "theme_color": "#221D14",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

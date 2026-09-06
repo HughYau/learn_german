@@ -6,10 +6,6 @@ import { getEnabledPacks } from '../state.js';
 
 const ART_COLOR = { der: 'blue', die: 'red', das: 'green' };
 
-function statCard(value, label) {
-  return el('div', { class: 'stat card' }, el('b', {}, String(value)), el('span', {}, label));
-}
-
 function sourceLabel(card) {
   return card.packTitle ? '词汇包 · ' + card.packTitle : (card.unitZh || '课程词汇');
 }
@@ -21,7 +17,8 @@ function fcCardFace(card) {
   const wLine = el('div', { class: 'w' });
   if (card.art) wLine.style.color = `var(--${ART_COLOR[card.art] || 'ink'})`;
   wLine.append(fullWord);
-  front.append(wLine, ' ', ttsBtn(fullWord), ttsBtn(fullWord, { slow: true }),
+  front.append(wLine,
+    el('div', { class: 'fc-tools' }, ttsBtn(fullWord), ttsBtn(fullWord, { slow: true })),
     el('button', { class: 'fc-flip-trigger', type: 'button' }, '显示答案'));
 
   const back = el('div', { class: 'fc-face fc-back' }, el('div', { class: 'm' }, card.zh));
@@ -51,7 +48,7 @@ function runSession(container, initialQueue) {
     const card = queue[0];
 
     area.append(el('div', { class: 'fc-meta' },
-      `第 ${reviewedCount + 1} / ${sessionTotal} 张 · 来自 ${sourceLabel(card)}`));
+      `${reviewedCount + 1} / ${sessionTotal} · ${sourceLabel(card)}`));
 
     const { front, back } = fcCardFace(card);
     const fcCard = el('div', { class: 'fc-card' }, front, back);
@@ -101,18 +98,16 @@ function runSession(container, initialQueue) {
   function showDone() {
     area.innerHTML = '';
     const actions = el('div', { class: 'ex-actions', style: 'justify-content:center' });
-    const backBtn = el('button', { class: 'btn', type: 'button' }, '返回词卡页');
+    const backBtn = el('button', { class: 'btn', type: 'button' }, '返回');
     backBtn.addEventListener('click', () => render(container));
     actions.append(backBtn);
-    const note = forgottenCount
-      ? `其中 ${forgottenCount} 张将在 10 分钟后重新到期。`
-      : '这一轮没有遗忘，做得很好。';
-    area.append(el('div', { class: 'ex-result' },
+    const result = el('div', { class: 'ex-result' },
       el('div', { class: 'big' }, '✓'),
-      el('p', {}, `本轮已处理 ${reviewedCount} 张词卡。`),
-      el('p', { class: 'empty-note compact' }, note),
-      actions
-    ));
+      el('p', {}, `${reviewedCount} 张，完成。`)
+    );
+    if (forgottenCount) result.append(el('p', { class: 'empty-note compact' }, `${forgottenCount} 张 10 分钟后再来。`));
+    result.append(actions);
+    area.append(result);
   }
 
   showCard();
@@ -130,38 +125,30 @@ export function render(container) {
   container.append(packEntry);
 
   container.append(el('h1', { class: 'page' }, '词汇卡片 ', el('span', { class: 'de' }, 'Karten')));
-  container.append(el('p', { class: 'page-sub' }, '只复习你已经打开过的课程词汇；到期卡优先，新词与扩展词包公平混排。'));
+  container.append(el('p', { class: 'page-sub' }, '只出现你学过的课里的词。'));
 
   const cards = allStudyCards();
   const c = counts(cards);
-  container.append(el('div', { class: 'stat-row' },
-    statCard(c.due, '今日到期'),
-    statCard(c.fresh, '可学新词'),
-    statCard(c.learned, '已进入复习')
-  ));
-
   const startArea = el('div', { class: 'card fc-start-area' });
   container.append(startArea);
 
   if (!cards.length) {
     startArea.append(
-      el('h3', {}, '先学一课，再来复习'),
-      el('p', {}, '课程词汇会在你打开对应课时后解锁；也可以启用一个主题词汇包。'),
+      el('h3', {}, '还没有词卡'),
+      el('p', {}, '学过的课，词会出现在这里。'),
       el('div', { class: 'ex-actions', style: 'justify-content:center' },
-        el('a', { class: 'btn', href: '#/units' }, '去选一课'),
-        el('a', { class: 'btn ghost', href: '#/wortschatz' }, '浏览词汇包'))
+        el('a', { class: 'btn', href: '#/units' }, '选一课'),
+        el('a', { class: 'btn ghost', href: '#/wortschatz' }, '词汇包'))
     );
     return;
   }
 
   const queue = buildQueue(cards, 10);
   const startBtn = el('button', { class: 'btn', type: 'button' },
-    queue.length ? `开始今日复习 · ${queue.length} 张` : '今日已完成');
+    queue.length ? `开始 · ${queue.length} 张` : '今天没有要复习的');
   startBtn.disabled = queue.length === 0;
   startArea.append(
-    el('p', {}, queue.length
-      ? `本轮包含 ${c.due} 张到期卡，并补充最多 10 张新卡。`
-      : '今天没有到期卡，也没有待学新词。'),
+    el('p', { class: 'counts' }, `到期 ${c.due} · 新词 ${c.fresh} · 复习中 ${c.learned}`),
     startBtn
   );
 

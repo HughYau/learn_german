@@ -2,13 +2,37 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#221D14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="DailyGerman">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
 <title>DailyGerman · 日常德语，一站就够了</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%23C64A28'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Hanken+Grotesk:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/main.css">
+<!-- Google Analytics 4：只在正式域名加载；本机开发（localhost / 127.0.0.1 / file://）不计入统计。
+     页面浏览不用默认上报，由 js/analytics.js 按 hash 路由手动发 page_view -->
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){ dataLayer.push(arguments); }
+(function () {
+  var id = 'G-R67NC4FQJ1';
+  var host = location.hostname;
+  if (!host || host === 'localhost' || host === '127.0.0.1' || location.protocol === 'file:') return;
+  var s = document.createElement('script');
+  s.async = true;
+  s.src = 'https://www.googletagmanager.com/gtag/js?id=' + id;
+  document.head.appendChild(s);
+  gtag('js', new Date());
+  gtag('config', id, { send_page_view: false });
+  window.__gaId = id;
+})();
+</script>
 </head>
 <body>
 <div id="app">
@@ -17,7 +41,6 @@
       <div class="logo-mark"><span class="lm-c"></span></div>
       <div class="logo-text">DailyGerman<span>日常德语，一站就够了</span></div>
     </a>
-    <a class="mobile-settings-link" href="#/settings" aria-label="打开设置">⚙ 设置</a>
     <nav id="nav">
       <a href="#/" data-route="home"><i class="nb nb-circle"></i>首页 <em>Start</em></a>
       <a href="#/units" data-route="units"><i class="nb nb-square"></i>课程 <em>Lektionen</em></a>
@@ -40,6 +63,26 @@
     </div>
   </aside>
   <main id="main"></main>
+</div>
+<!-- 手机端底部导航（桌面端隐藏）：只放拇指够得着的四个入口，其余收进“更多” -->
+<nav id="tabbar" aria-label="主导航">
+  <a href="#/" data-tab="home"><i class="nb nb-circle"></i><span>首页</span></a>
+  <a href="#/units" data-tab="units"><i class="nb nb-square"></i><span>课程</span></a>
+  <a href="#/cards" data-tab="cards"><i class="nb nb-tri"></i><span>复习</span><b id="tab-due" class="due-badge" hidden></b></a>
+  <button type="button" id="tab-more" data-tab="more" aria-expanded="false" aria-controls="more-sheet"><i class="nb nb-lines"></i><span>更多</span></button>
+</nav>
+<div id="more-sheet" hidden>
+  <div class="sheet-backdrop"></div>
+  <div class="sheet" role="dialog" aria-label="更多栏目">
+    <a href="#/favorites" data-route="favorites"><i class="nb nb-star"></i>收藏夹 <em>Favoriten</em></a>
+    <a href="#/chat" data-route="chat"><i class="nb nb-half"></i>AI 陪练 <em>Tandem</em></a>
+    <a href="#/grammar" data-route="grammar"><i class="nb nb-lines"></i>语法手册 <em>Grammatik</em></a>
+    <a href="#/phrases" data-route="phrases"><i class="nb nb-dot"></i>短语 <em>Phrasen</em></a>
+    <a href="#/listening" data-route="listening"><i class="nb nb-wave"></i>听力 <em>Hören</em></a>
+    <a href="#/reading" data-route="reading"><i class="nb nb-page"></i>阅读 <em>Lesen</em></a>
+    <a href="#/search" data-route="search"><i class="nb nb-ring"></i>检索 <em>Suchen</em></a>
+    <a href="#/settings" data-route="settings"><i class="nb nb-square" style="transform:rotate(45deg) scale(.8)"></i>设置 <em>Einstellungen</em></a>
+  </div>
 </div>
 <script type="module" src="js/app.js"></script>
 </body>
