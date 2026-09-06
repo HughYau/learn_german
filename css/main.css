@@ -590,6 +590,11 @@ input[type=range]{max-width:300px; accent-color:var(--red)}
   #main{width:100%; max-width:none; margin:0; padding:22px 20px calc(90px + env(safe-area-inset-bottom)); overflow-x:clip}
   .hero-row,.unit-grid{grid-template-columns:1fr}
   .msg{max-width:88%}
+  /* 阶段标题：固定两行（标题 / 进度），不让 flex-wrap 看标题长短决定换不换行，否则进度条被截断、各块高度不一 */
+  .phase-head{display:grid; grid-template-columns:1fr; gap:10px; padding:16px 18px}
+  .phase-head-meta{width:100%}
+  .phase-head-meta .phase-bar{flex:1 1 auto; max-width:none}
+  .phase-arrow{margin-left:auto}
   /* 词汇表：四列并排改成卡片式——第一行“词 + 播放键”，下面释义、例句各占一行 */
   .vocab-table table,.vocab-table tbody{display:block; width:100%}
   .vocab-table tr{display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-areas:"w a" "m a" "ex ex"; column-gap:10px; padding:12px 14px}
