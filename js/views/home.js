@@ -66,7 +66,8 @@ function wortCard(studyCards, now) {
   card.append(el('div', { class: 'kicker' }, 'WORT DES TAGES · 每日一词'));
   const line = el('div', { class: 'w' });
   if (w.art) line.append(el('span', { style: `color:var(--${ART_COLOR[w.art]})` }, w.art + ' '));
-  line.append(w.de + ' ', ttsBtn(w.de));
+  // 名词连冠词一起读，听得出词性
+  line.append(w.de + ' ', ttsBtn(w.de, { art: w.art }));
   card.append(line, el('div', { class: 'm' }, w.zh));
   if (w.ex) {
     card.append(el('div', { class: 'ex' }, w.ex));

@@ -1,6 +1,7 @@
 // #/cards SRS 闪卡复习
 import { el } from '../ui.js';
 import { ttsBtn, speak } from '../audio.js';
+import { analyze } from '../pronounce.js';
 import { buildQueue, counts, gradeCard, allStudyCards } from '../srs.js';
 import { getEnabledPacks } from '../state.js';
 
@@ -10,16 +11,34 @@ function sourceLabel(card) {
   return card.packTitle ? '词汇包 · ' + card.packTitle : (card.unitZh || '课程词汇');
 }
 
+/** 音节 + 重音提示行：LEIP·zig，重音音节加重音符 */
+function stressHint(word) {
+  const info = analyze(word);
+  if (info.syllables.length < 2 && !info.ipa) return null;
+
+  const line = el('div', { class: 'fc-syl-hint fc-stress' });
+  info.syllables.forEach((s, i) => {
+    if (i) line.append('·');
+    line.append(el(i === info.stress ? 'b' : 'span', { class: i === info.stress ? 's on' : 's' }, s));
+  });
+  const wrap = el('div', {}, line);
+  if (info.ipa) wrap.append(el('div', { class: 'fc-ipa' }, `[${info.ipa}]`));
+  return wrap;
+}
+
 function fcCardFace(card) {
   // 名词连同冠词一起读——性别属于这个词声音记忆的一部分
   const fullWord = (card.art ? card.art + ' ' : '') + card.de;
   const front = el('div', { class: 'fc-face fc-front' });
+  if (card.art) front.setAttribute('data-art', card.art);
   const wLine = el('div', { class: 'w' });
   if (card.art) wLine.style.color = `var(--${ART_COLOR[card.art] || 'ink'})`;
   wLine.append(fullWord);
   front.append(wLine,
     el('div', { class: 'fc-tools' }, ttsBtn(fullWord), ttsBtn(fullWord, { slow: true })),
     el('button', { class: 'fc-flip-trigger', type: 'button' }, '显示答案'));
+  const hint = stressHint(card.de);
+  if (hint) front.append(hint);
 
   const back = el('div', { class: 'fc-face fc-back' }, el('div', { class: 'm' }, card.zh));
   if (card.en) back.append(el('div', { class: 'en' }, card.en));

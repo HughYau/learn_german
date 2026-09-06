@@ -2,6 +2,7 @@
 import { el } from './ui.js';
 import { counts, allStudyCards } from './srs.js';
 import { trackPageView } from './analytics.js';
+import { installPronunciationLookup } from './pronounce-popup.js';
 
 import { render as renderHome } from './views/home.js';
 import { render as renderUnits } from './views/units.js';
@@ -113,6 +114,8 @@ function router() {
 }
 
 window.addEventListener('hashchange', router);
+// 长按/右键查发音：一次性挂在 document 上，用事件委托覆盖所有视图
+installPronunciationLookup();
 
 // 离线支持（sw.js）：本机开发不注册，改完代码刷新就要看到最新文件；带 ?sw=1 打开可强制启用来测试
 const isLocalHost = ['localhost', '127.0.0.1'].includes(location.hostname);
