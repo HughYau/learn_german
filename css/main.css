@@ -56,6 +56,11 @@ body::before{
 .nb-star{background:currentColor; clip-path:polygon(50% 0,61% 34%,98% 34%,68% 55%,79% 91%,50% 69%,21% 91%,32% 55%,2% 34%,39% 34%)}
 .due-badge{margin-left:6px; background:var(--yellow); color:#221D14; font-size:.68rem; font-weight:800; border-radius:999px; padding:1px 7px; font-style:normal}
 .side-foot{padding:14px 22px 0; border-top:1px solid rgba(239,233,219,.14)}
+.github-link{display:flex; align-items:center; gap:9px; margin-bottom:12px; padding:9px 10px; border:1px solid rgba(239,233,219,.18); border-radius:9px; color:#D8D0BC; text-decoration:none; font-size:.73rem; line-height:1.35; transition:background .15s,color .15s,border-color .15s}
+.github-link:hover,.github-link:focus-visible{background:rgba(239,233,219,.08); border-color:rgba(239,233,219,.36); color:#fff}
+.github-link:focus-visible{outline:2px solid var(--yellow); outline-offset:2px}
+.github-link b{display:block; color:var(--yellow); font-size:.76rem}
+.github-icon{width:19px; height:19px; flex:0 0 19px}
 .settings-link{color:#B4AA93; text-decoration:none; font-size:.85rem; font-weight:600}
 .settings-link:hover{color:#fff}
 .gender-legend{display:flex; gap:10px; margin-top:12px; font-size:.68rem; color:#8C8371}
@@ -579,6 +584,10 @@ input[type=range]{max-width:300px; accent-color:var(--red)}
   }
   .sheet a{display:flex; align-items:center; gap:9px; min-height:52px; padding:10px 12px; border-radius:12px; background:var(--panel2); color:var(--ink); text-decoration:none; font-weight:700; font-size:.88rem; white-space:nowrap}
   .sheet a .nb{color:var(--red)}
+  .sheet .github-sheet-link{grid-column:1 / -1; background:var(--ink); color:#EFE9DB}
+  .sheet .github-sheet-link:hover,.sheet .github-sheet-link:focus-visible{background:var(--ink2)}
+  .sheet .github-sheet-link .github-icon{color:var(--yellow)}
+  .sheet .github-sheet-link em{color:#B4AA93}
   .sheet a em{font-style:italic; font-family:var(--font-de); font-weight:400; color:var(--muted); font-size:.76rem; margin-left:auto; overflow:hidden; text-overflow:ellipsis}
   .sheet a.active{background:var(--red-soft); outline:1.5px solid var(--red)}
   @keyframes sheetUp{from{transform:translateY(24px); opacity:0} to{transform:none; opacity:1}}
