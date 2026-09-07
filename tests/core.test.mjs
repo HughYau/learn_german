@@ -149,3 +149,39 @@ test('同一 AI 端点的无 Key 备份可以保留本机 Key', { concurrency: f
 
   assert.equal(state.getSettings().apiKey, 'local-secret');
 });
+
+test('不完整备份会被安全归一化，避免导入后页面状态损坏', { concurrency: false }, () => {
+  resetStorage();
+  state.setSettings({ apiKey: 'local-secret' });
+
+  state.importData({
+    version: 2,
+    app: 'dailygerman',
+    settings: { baseUrl: 'https://chat-ai.academiccloud.de/v1' },
+    progress: { lessons: [], days: { today: 'bad' }, lastLesson: 42 },
+    srs: { broken: [], valid: { due: 0, reps: 1 } },
+    favs: { lessons: ['u0l1', 'u0l1', 42], grammar: null },
+    packs: ['travel', 'travel', 42],
+  });
+
+  assert.equal(state.getSettings().apiKey, 'local-secret');
+  assert.equal(state.getSettings().model, 'qwen-3.5-397b-a17b');
+  assert.equal(state.lastLesson(), null);
+  assert.equal(state.todayActivityCount(), 0);
+  assert.deepEqual(state.getSrs(), { valid: { due: 0, reps: 1 } });
+  assert.deepEqual(state.getFavs(), { lessons: ['u0l1'], grammar: [] });
+  assert.deepEqual(state.getEnabledPacks(), ['travel']);
+});
+
+test('备份应用标识和 AI 端点校验会拒绝不可信输入', { concurrency: false }, () => {
+  resetStorage();
+  const base = {
+    version: 2,
+    settings: {},
+    progress: {},
+    srs: {},
+  };
+  assert.throws(() => state.importData({ ...base, app: 'other-app' }), /有效的 DailyGerman/);
+  assert.throws(() => state.importData({ ...base, settings: { baseUrl: 'http://example.com/v1' } }), /不安全/);
+  assert.throws(() => state.importData({ ...base, settings: { baseUrl: 'not-a-url' } }), /格式无效/);
+});
