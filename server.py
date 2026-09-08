@@ -27,13 +27,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     # ---- /api/* 代理 ----
     def _upstream(self):
         base = self.headers.get('X-Upstream-Base', DEFAULT_UPSTREAM).rstrip('/')
-        if base.startswith('https://'):
+        if base.startswith(('http://', 'https://')):
             return base
-        # 只允许 http:// 指向本机（Ollama 等本地服务），其余一律拒绝，强制 https
-        if base.startswith('http://'):
-            host = urllib.parse.urlparse(base).hostname
-            if host in ('localhost', '127.0.0.1'):
-                return base
         return None
 
     def _proxy(self, method):
@@ -92,7 +87,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 
 if __name__ == '__main__':
-    with socketserver.ThreadingTCPServer(('127.0.0.1', PORT), Handler) as httpd:
+    with socketserver.ThreadingTCPServer(('0.0.0.0', PORT), Handler) as httpd:
         httpd.daemon_threads = True
         print(f'Alltag running: http://localhost:{PORT}')
         httpd.serve_forever()
