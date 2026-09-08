@@ -27,6 +27,22 @@ python server.py
 
 然后打开 `http://127.0.0.1:8420`。
 
+## Docker 部署
+
+在项目目录运行：
+
+```bash
+docker compose up -d --build
+```
+
+然后在局域网内打开 `http://<主机局域网 IP>:8420`。停止服务：
+
+```bash
+docker compose down
+```
+
+该部署没有认证，仅适合可信的局域网环境。
+
 ## 装到手机上
 
 手机浏览器里选「添加到主屏幕」。打开过一次之后离线也能用（AI 陪练除外）。缓存在 `sw.js`，发新版时把 `VERSION` 加一。
