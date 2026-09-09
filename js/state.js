@@ -5,6 +5,72 @@ const K = {
   listening: 'dl.listening', reading: 'dl.reading',
 };
 
+const DEFAULT_SETTINGS = {
+  baseUrl: 'https://chat-ai.academiccloud.de/v1',
+  apiKey: '',
+  model: 'qwen-3.5-397b-a17b',
+  rate: 0.92,
+  voiceName: '',
+  provider: 'saia',
+};
+
+function isRecord(value) {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function inferProvider(baseUrl) {
+  const b = String(baseUrl || '');
+  if (b.includes('academiccloud')) return 'saia';
+  if (b.includes('deepseek')) return 'deepseek';
+  return 'custom';
+}
+
+function normalizeSettings(value) {
+  const input = isRecord(value) ? value : {};
+  const baseUrl = typeof input.baseUrl === 'string' && input.baseUrl.trim()
+    ? input.baseUrl.trim() : DEFAULT_SETTINGS.baseUrl;
+  const rate = Number(input.rate);
+  return {
+    baseUrl,
+    apiKey: typeof input.apiKey === 'string' ? input.apiKey : '',
+    model: typeof input.model === 'string' ? input.model.trim() : DEFAULT_SETTINGS.model,
+    rate: Number.isFinite(rate) ? Math.min(1.2, Math.max(0.5, rate)) : DEFAULT_SETTINGS.rate,
+    voiceName: typeof input.voiceName === 'string' ? input.voiceName : '',
+    provider: typeof input.provider === 'string' && input.provider.trim()
+      ? input.provider.trim() : inferProvider(baseUrl),
+  };
+}
+
+function normalizeProgress(value) {
+  const input = isRecord(value) ? value : {};
+  const lessons = isRecord(input.lessons)
+    ? Object.fromEntries(Object.entries(input.lessons).filter(([, state]) => isRecord(state)))
+    : {};
+  const days = isRecord(input.days)
+    ? Object.fromEntries(Object.entries(input.days).filter(([, count]) => Number.isFinite(Number(count)) && Number(count) >= 0))
+    : {};
+  return {
+    lessons,
+    lastLesson: typeof input.lastLesson === 'string' ? input.lastLesson : null,
+    days,
+  };
+}
+
+function normalizeObject(value) {
+  return isRecord(value) ? value : {};
+}
+
+function normalizeSrs(value) {
+  return Object.fromEntries(Object.entries(normalizeObject(value))
+    .filter(([, state]) => isRecord(state)));
+}
+
+function stringList(value) {
+  return Array.isArray(value)
+    ? [...new Set(value.filter(item => typeof item === 'string'))]
+    : [];
+}
+
 function load(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
   catch { return fallback; }
@@ -13,24 +79,15 @@ function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 
 /* ---------- 设置 ---------- */
 export function getSettings() {
-  const s = load(K.settings, { baseUrl: 'https://chat-ai.academiccloud.de/v1', apiKey: '', model: 'qwen-3.5-397b-a17b', rate: 0.92, voiceName: '', provider: 'saia' });
-  if (!s.provider) {
-    // 兼容老用户：没存过 provider 时按 baseUrl 推断，不回写，只在这次返回值里带上
-    const b = s.baseUrl || '';
-    let provider = 'custom';
-    if (b.includes('academiccloud')) provider = 'saia';
-    else if (b.includes('deepseek')) provider = 'deepseek';
-    return { ...s, provider };
-  }
-  return s;
+  return normalizeSettings(load(K.settings, DEFAULT_SETTINGS));
 }
 export function setSettings(patch) {
-  save(K.settings, { ...getSettings(), ...patch });
+  save(K.settings, normalizeSettings({ ...getSettings(), ...patch }));
 }
 
 /* ---------- 进度 ---------- */
 function getProgress() {
-  return load(K.progress, { lessons: {}, lastLesson: null, days: {} });
+  return normalizeProgress(load(K.progress, { lessons: {}, lastLesson: null, days: {} }));
 }
 function saveProgress(p) { save(K.progress, p); }
 
@@ -112,7 +169,7 @@ export function getUnlockedLessonIds() {
 }
 
 /* ---------- SRS 卡片状态 ---------- */
-export function getSrs() { return load(K.srs, {}); }
+export function getSrs() { return normalizeSrs(load(K.srs, {})); }
 export function setSrsCard(cardId, data) {
   const s = getSrs();
   s[cardId] = data;
@@ -222,44 +279,49 @@ export function exportData({ includeKey = false } = {}) {
 }
 
 export function importData(obj) {
-  if (!obj || ![1, 2].includes(obj.version)
-    || typeof obj.settings !== 'object' || obj.settings === null
-    || typeof obj.progress !== 'object' || obj.progress === null
-    || typeof obj.srs !== 'object' || obj.srs === null) {
+  if (!isRecord(obj) || ![1, 2].includes(obj.version)
+    || !isRecord(obj.settings) || !isRecord(obj.progress) || !isRecord(obj.srs)
+    || (obj.app != null && obj.app !== 'dailygerman')) {
     throw new Error('文件内容不是有效的 DailyGerman 备份数据。');
   }
-  const favsIn = (obj.favs && typeof obj.favs === 'object') ? obj.favs : {};
-  const favs = {
-    lessons: Array.isArray(favsIn.lessons) ? favsIn.lessons : [],
-    grammar: Array.isArray(favsIn.grammar) ? favsIn.grammar : [],
-  };
-  const kann = (obj.kann && typeof obj.kann === 'object') ? obj.kann : {};
 
   const currentSettings = getSettings();
   const allowedSettingKeys = ['baseUrl', 'apiKey', 'model', 'rate', 'voiceName', 'provider'];
-  const importedSettings = Object.fromEntries(allowedSettingKeys
+  const importedRawSettings = Object.fromEntries(allowedSettingKeys
     .filter(k => Object.hasOwn(obj.settings, k))
     .map(k => [k, obj.settings[k]]));
-  const baseUrl = String(importedSettings.baseUrl || '');
-  if (baseUrl && !/^https:\/\//i.test(baseUrl)
-    && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(?:\/|$)/i.test(baseUrl)) {
+  const importedSettings = normalizeSettings(importedRawSettings);
+  const baseUrl = importedSettings.baseUrl;
+  let endpoint;
+  try { endpoint = new URL(baseUrl); }
+  catch { throw new Error('备份中的 AI 端点格式无效。'); }
+  if (endpoint.protocol !== 'https:'
+    && !(endpoint.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(endpoint.hostname))) {
     throw new Error('备份中的 AI 端点不安全：仅允许 HTTPS 或本机 HTTP。');
   }
-  // 只有端点和服务商都没改变时，才保留本机 Key，避免把已有 Key 发往备份指定的陌生地址。
+  // 未包含 Key 或明确为空时，只有端点和服务商都没改变，才保留本机 Key。
+  // 这样导入不含凭据的备份不会意外清除同一端点的本机配置，也不会把 Key 发往陌生端点。
   if (!importedSettings.apiKey) {
     const sameEndpoint = importedSettings.baseUrl === currentSettings.baseUrl
       && importedSettings.provider === currentSettings.provider;
     importedSettings.apiKey = sameEndpoint ? (currentSettings.apiKey || '') : '';
   }
 
+  const favsIn = normalizeObject(obj.favs);
+  const favs = {
+    lessons: stringList(favsIn.lessons),
+    grammar: stringList(favsIn.grammar),
+  };
+  const kann = normalizeObject(obj.kann);
+
   save(K.settings, importedSettings);
-  save(K.progress, obj.progress);
-  save(K.srs, obj.srs);
+  save(K.progress, normalizeProgress(obj.progress));
+  save(K.srs, normalizeSrs(obj.srs));
   save(K.favs, favs);
   save(K.kann, kann);
-  save(K.listening, (obj.listening && typeof obj.listening === 'object') ? obj.listening : {});
-  save(K.reading, (obj.reading && typeof obj.reading === 'object') ? obj.reading : {});
-  save(K.packs, Array.isArray(obj.packs) ? obj.packs : []);
+  save(K.listening, normalizeObject(obj.listening));
+  save(K.reading, normalizeObject(obj.reading));
+  save(K.packs, stringList(obj.packs));
 }
 
 export function resetAll() {

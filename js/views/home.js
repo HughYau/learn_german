@@ -1,7 +1,7 @@
 // 首页：不做仪表盘、不打卡——打开就能学。一张“现在开始”大卡 + 每日一词 + 课程地图 + 随便看看
 import { el } from '../ui.js';
 import { ttsBtn } from '../audio.js';
-import { lastLesson, doneCount, isLessonPassed } from '../state.js';
+import { lastLesson, doneCount, isLessonPassed, todayActivityCount } from '../state.js';
 import { counts, allStudyCards } from '../srs.js';
 import { allLessons, findLesson, allVocabCards } from '../../data/course.js';
 import { phases } from '../../data/phases.js';
@@ -55,6 +55,37 @@ function startCard(target, cardCounts) {
     actions.append(el('a', { class: 'btn ghost', href: '#/cards' }, '新词卡'));
   }
   card.append(actions);
+  return card;
+}
+
+function todayCard(cardCounts) {
+  const activity = todayActivityCount();
+  const card = el('section', { class: 'card today-card', 'aria-labelledby': 'today-title' });
+  card.append(
+    el('div', { class: 'today-head' },
+      el('div', { class: 'kicker' }, 'HEUTE · 今日'),
+      el('span', { class: 'today-note' }, activity > 0 ? '保持节奏，按自己的步调来' : '今天还没有学习记录')
+    ),
+    el('h2', { id: 'today-title' }, activity > 0 ? '今天已经开始了' : '准备开始今天的学习？')
+  );
+
+  const stats = el('div', { class: 'today-stats' });
+  [
+    { value: activity, label: '学习动作' },
+    { value: cardCounts.due, label: '待复习' },
+    { value: cardCounts.fresh, label: '可学新词' },
+  ].forEach(({ value, label }) => {
+    stats.append(el('div', { class: 'today-stat' },
+      el('strong', {}, String(value)),
+      el('span', {}, label)
+    ));
+  });
+  card.append(stats);
+
+  const action = cardCounts.due > 0
+    ? { href: '#/cards', text: `先复习 ${cardCounts.due} 张 →` }
+    : { href: '#/units', text: '浏览课程 →' };
+  card.append(el('a', { class: 'today-link', href: action.href }, action.text));
   return card;
 }
 
@@ -114,6 +145,7 @@ export function render(container) {
   container.append(stagger);
 
   stagger.append(startCard(learningTarget(lessons), cardCounts));
+  stagger.append(todayCard(cardCounts));
 
   const row = el('div', { class: 'hero-row' });
   row.append(wortCard(studyCards, now), mapCard(lessons));

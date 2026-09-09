@@ -120,10 +120,13 @@ installPronunciationLookup();
 // 离线支持（sw.js）：本机开发不注册，改完代码刷新就要看到最新文件；带 ?sw=1 打开可强制启用来测试
 const isLocalHost = ['localhost', '127.0.0.1'].includes(location.hostname);
 if ('serviceWorker' in navigator) {
-  if (!isLocalHost || location.search.includes('sw=1')) {
+  if (!isLocalHost || new URLSearchParams(location.search).get('sw') === '1') {
     navigator.serviceWorker.register('./sw.js').catch(() => { /* 不支持或被拦截时静默降级为在线使用 */ });
   } else {
-    navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});
+    const appScope = new URL('./', location.href).href;
+    navigator.serviceWorker.getRegistrations()
+      .then(rs => Promise.all(rs.filter(r => r.scope === appScope).map(r => r.unregister())))
+      .catch(() => {});
   }
 }
 // 模块脚本在 DOM 解析完后执行，直接渲染即可——不等 load 事件（模块加载慢于 load 时会错过）

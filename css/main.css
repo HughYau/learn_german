@@ -119,6 +119,18 @@ h1.page .de{font-style:italic; color:var(--red)}
 .start-card .where{color:var(--muted); font-size:.95rem; margin-bottom:22px; position:relative}
 .start-actions{display:flex; align-items:center; gap:12px; flex-wrap:wrap; position:relative}
 .btn.big{padding:15px 32px; font-size:1.05rem}
+.today-card{padding:18px 24px 20px; margin-bottom:18px; border-left:4px solid var(--yellow)}
+.today-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap}
+.today-note{color:var(--muted); font-size:.8rem}
+.today-card h2{font-family:var(--font-de); font-size:1.35rem; font-weight:600; line-height:1.2; margin:3px 0 14px}
+.today-stats{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:10px; overflow:hidden}
+.today-stat{display:flex; align-items:baseline; gap:7px; min-width:0; padding:10px 12px; background:var(--panel2)}
+.today-stat strong{font-size:1.35rem; line-height:1; font-weight:800; color:var(--ink)}
+.today-stat span{color:var(--muted); font-size:.78rem; white-space:nowrap}
+.today-link{display:inline-block; margin-top:13px; color:var(--red); text-decoration:none; font-size:.84rem; font-weight:800}
+.today-link:hover{text-decoration:underline}
+.api-key-row{display:flex; align-items:center; gap:10px; max-width:560px}
+.api-key-row input{flex:1; min-width:0}
 .wort-card{padding:22px 24px; background:var(--ink); color:#EFE9DB; border:none}
 .wort-card .kicker{color:var(--yellow)}
 .wort-card .w{font-family:var(--font-de); font-size:1.85rem; font-weight:550; line-height:1.15; margin:2px 0 2px}
@@ -621,6 +633,9 @@ input[type=range]{max-width:300px; accent-color:var(--red)}
 @media (max-width:560px){
   #main{padding:18px 16px calc(90px + env(safe-area-inset-bottom))}
   .start-card{padding:24px 20px 26px}
+  .today-card{padding-left:18px; padding-right:18px}
+  .today-stat{display:block; padding:10px 8px}
+  .today-stat strong{display:block; margin-bottom:3px}
   .start-card h2{font-size:1.8rem}
   .btn.big{padding:14px 26px}
   h1.page{font-size:2rem}

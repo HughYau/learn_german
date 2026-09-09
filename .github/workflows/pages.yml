@@ -25,9 +25,10 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir -p _site
-          cp index.html _site/
-          cp -R css js data _site/
+          cp index.html manifest.webmanifest sw.js _site/
+          cp -R css js data icons _site/
           touch _site/.nojekyll
+          npm run check:site -- _site
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

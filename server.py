@@ -1,4 +1,4 @@
-# Alltag 本地服务器：`python server.py` 启动，浏览器打开 http://localhost:8420
+# Alltag 本地服务器：`python3 server.py` 启动，浏览器打开 http://localhost:8420
 # 职责：1) 提供静态文件  2) 把 /api/* 代理到 OpenAI 兼容（或 Anthropic 原生）的 AI 端点（绕过学术网关的 CORS 限制）
 import http.server
 import json

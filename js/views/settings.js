@@ -44,6 +44,19 @@ export function render(container) {
 
   const baseUrlInput = el('input', { type: 'text', value: s.baseUrl || '', placeholder: 'https://example.com/v1', spellcheck: false });
   const apiKeyInput = el('input', { type: 'password', value: s.apiKey || '', placeholder: curProvider().noKey ? '此服务商无需 Key' : '', autocomplete: 'off' });
+  const clearKeyBtn = el('button', { class: 'btn ghost small', type: 'button' }, '清除 Key');
+  const apiKeyRow = el('div', { class: 'api-key-row' }, apiKeyInput, clearKeyBtn);
+  function syncClearKey() { clearKeyBtn.disabled = !apiKeyInput.value; }
+  syncClearKey();
+  apiKeyInput.addEventListener('input', syncClearKey);
+  clearKeyBtn.addEventListener('click', () => {
+    if (!apiKeyInput.value || confirm('确定清除当前保存的 API Key 吗？')) {
+      apiKeyInput.value = '';
+      setSettings({ apiKey: '' });
+      syncClearKey();
+      modelMsg.textContent = 'API Key 已从本机设置中清除。';
+    }
+  });
   const modelList = el('datalist', { id: 'ai-model-options' });
   const modelInput = el('input', { type: 'text', value: s.model || '', list: 'ai-model-options', placeholder: '模型 ID，也可以手动填写', spellcheck: false });
 
@@ -122,7 +135,7 @@ export function render(container) {
     fieldBlock('服务商', providerSelect),
     providerHint,
     fieldBlock('API 端点', baseUrlInput),
-    fieldBlock('API Key（仅保存在本机）', apiKeyInput),
+    fieldBlock('API Key（仅保存在本机）', apiKeyRow),
     fieldBlock('模型', modelRow),
     modelMsg, saveBtn, okNote
   );
